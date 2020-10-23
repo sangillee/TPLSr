@@ -49,5 +49,5 @@ A evalTuningParam object that contains the following attributes.
 Evaluate TPLS tuning parameters using cross validation
 }
 \examples{
-# Fit TPLS model to example data
+# see examples under TPLS_cv as you'd need a TPLS_cv object to run this function
 }

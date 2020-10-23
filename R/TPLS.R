@@ -17,7 +17,30 @@
 #'     \item \code{threshmap} : v-by-NComp matrix of TPLS threshold values (0~1) for each of the v variables, provided at each model with NComp components.
 #' }
 #' @examples
-#' # Fit TPLS model to example data
+#' # Fit example TPLS data with a TPLS model
+#' # Load example data (included with package).
+#' X = TPLdat$X
+#' Y = TPLdat$Y
+#'
+#' # Fit the model, with default options (50 components, no observation weights)
+#' TPLSmdl <- TPLS(X,Y)
+#'
+#' # Make in-sample prediction at threshold of 0.5 (remove half of the voxels) and at all possible components
+#' pred <- predict(TPLSmdl,1:50,0.5,X)
+#'
+#' # Look at the correlation between prediction and Y.
+#' # Of course, since this is an in-sample prediction, the model with all 50 components have the highest predictive correlation.
+#' # In practice, you'd want to choose the number of components and threshold using cross-validation. See example for TPLS_cv
+#' cor(Y,pred)
+#'
+#' # Extract the predictor for a model with 25 PLS components and threshold at 0.7 (just cuz)
+#' betamap <- makePredictor(TPLSmdl,25,0.5)
+#'
+#' # This is the intercept
+#' betamap$bias
+#'
+#' # These are the coefficients for the original variables
+#' betamap$betamap
 #' @export
 
 TPLS <- function(X,Y,NComp=50,W=0,nmc=0){

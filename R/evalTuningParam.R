@@ -22,7 +22,7 @@
 #'     \item \code{threshval_1se} : Threshold level that gave perf_1se
 #' }
 #' @examples
-#' # Fit TPLS model to example data
+#' # see examples under TPLS_cv as you'd need a TPLS_cv object to run this function
 #' @export
 
 evalTuningParam <- function(TPLScvmdl,type=c("pearson","spearman","AUC"),X,Y,compvec,threshvec,subfold=NULL){
