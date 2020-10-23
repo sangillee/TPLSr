@@ -13,21 +13,25 @@
 #'     \item \code{cvMdls} : A vector of TPLS models, one for each fold.
 #' }
 #' @examples
-#' # Fit example TPLS data with a TPLS model using cross-validation (as it should be)
+#' # Fit example TPLS data with a TPLS model using cross-validation
 #' # Load example data (included with package).
-#' X = TPLSdat$X # single trial brain image of 3 subjects pressing left/right buttons inside the scanner
+#' X = TPLSdat$X # single trial brain image of subjects pressing left/right buttons
 #' Y = TPLSdat$Y # binary variable that is 1 if right button is pushed, 0 if left button is pushed
 #' subj = TPLSdat$subj # 1, 2, or 3, depending on who the subject is
 #' run = TPLSdat$run # 1, 2, ..., 8, depending on the scan run of each subject
 #'
-#' # Fit the model, using 3-fold cross-validation at the subject level (i.e., train on two subjects, test on 1, repeat three times)
+#' # Fit the model, using 3-fold cross-validation at the subject level
+#' # (i.e., train on two subjects, test on 1, repeat three times)
 #' TPLScvmdl <- TPLS_cv(X,Y,subj)
 #'
-#' # Evaluate the tuning parameters via cross-validation. We'll test 1~50 components and thresholding from 0 to 1 in 0.05 increments. (feel free to try others)
-#' # Also include subfold information. This allows for calculation of correlation at the run-level instead of at the subject level.
+#' # Evaluate the tuning parameters via cross-validation.
+#' # We'll test 1~50 components and thresholding from 0 to 1 in 0.05 increments.
+#' # Also include subfold information.
+#' # This allows for calculation of correlation at the run-level instead of at the subject level.
 #' cvstats <- evalTuningParam(TPLScvmdl,"pearson",X,Y,1:50,seq(0,1,0.05),subfold=run)
 #'
-#' # plot the tuning parameter surface. It'll show the point of best performance (and also point of 1SE performance).
+#' # plot the tuning parameter surface.
+#' # It'll show the point of best performance (and also point of 1SE performance).
 #' # The plot is interactive, so spin it around
 #' plot(cvstats)
 #'
@@ -35,8 +39,8 @@
 #' cvstats$compval_best # 8 components
 #' cvstats$threshval_best # 0.15 thresholding (leave only 15% of all voxels)
 #'
-#' # Now build a new TPLS model, using all the data, using the tuning parameters of the best CV performance
-#' TPLSmdl <- TPLS(X,Y,NComp=cvstats$compval_best) # only fit up to 8 components to save time (a little)
+#' # Now build a new TPLS model, using all the data, using the best tuning parameters
+#' TPLSmdl <- TPLS(X,Y,NComp=cvstats$compval_best)
 #'
 #' # Extract the prediction betamap that gave the best CV performance
 #' betamap <- makePredictor(TPLSmdl,cvstats$compval_best,cvstats$threshval_best)
@@ -52,12 +56,12 @@
 #' brainimg = mask # make a copy
 #' brainimg[mask==1] = betamap$betamap # put the betamap into the brain image
 #' fig1 <- plot_ly(z = brainimg[,15,], type = "heatmap") # looking at a slice of the brain image
-#' fig2 <- plot_ly(z = mask[,15,], type = "heatmap") # looking at a slice of the brain mask for reference
+#' fig2 <- plot_ly(z = mask[,15,], type = "heatmap") # a slice of the brain mask for reference
 #' fig <- subplot(fig1, fig2)
 #' fig
 #'
-#' # This should show a coronal section of the brain around the motor cortex (but flipped right 90 degrees)
-#' # on the left side panel, you should see the bilateral motor cortex that has opposing coefficients (positive and negative) for pressing left and right buttons.
+#' # Figures show a coronal section of the brain (but flipped right 90 degrees).
+#' # on the left, you should see the bilateral motor cortex that has opposing coefficients (positive and negative) for pressing left and right buttons.
 #' # Of course, you'd want to use other packages to output this prediction map into a more bona-fid nifti image to view in a separate program.
 #' # This is just a demonstration.
 #' @export
