@@ -1,7 +1,7 @@
 Package: TPLSr
 Type: Package
-Title: Thresholed Partial Least Squares model for neuroimaging data
-Version: 1.0.0
+Title: Thresholded Partial Least Squares Model for Neuroimaging Data
+Version: 1.0.1
 Authors@R: person("Sangil", "Lee", email = "sangillee3rd@gmail.com", role = c("aut", "cre"))
 Description: Uses thresholded partial least squares algorithm to create a regression or classification model. 
 License: GPL-3

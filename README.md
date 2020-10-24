@@ -1,4 +1,4 @@
-# TPLSr 1.0.0
+# TPLSr 1.0.1
 
 R Package for using Thresholded Partial Least Squares (TPLS) for big data regression and classification.
 It is developed with whole-brain neuroimaging (fMRI) MVPA predictors in mind. TPLS uses analytical calulations

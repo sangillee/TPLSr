@@ -37,7 +37,7 @@
 #'
 #' # These are the tuning parameters of best performance
 #' cvstats$compval_best # 8 components
-#' cvstats$threshval_best # 0.15 thresholding (leave only 15% of all voxels)
+#' cvstats$threshval_best # 0.1 thresholding (leave only 10% of all voxels)
 #'
 #' # Now build a new TPLS model, using all the data, using the best tuning parameters
 #' TPLSmdl <- TPLS(X,Y,NComp=cvstats$compval_best)
@@ -53,10 +53,10 @@
 #'
 #' # Project the betamap into brain-space so that we can look at it.
 #' mask = TPLSdat$mask # mask 3D image of the brain from which X was extracted from
-#' brainimg = mask # make a copy
-#' brainimg[mask==1] = betamap$betamap # put the betamap into the brain image
+#' brainimg = mask*1 # make a copy
+#' brainimg[mask] = betamap$betamap # put the betamap into the brain image
 #' fig1 <- plot_ly(z = brainimg[,15,], type = "heatmap") # looking at a slice of the brain image
-#' fig2 <- plot_ly(z = mask[,15,], type = "heatmap") # a slice of the brain mask for reference
+#' fig2 <- plot_ly(z = 1*mask[,15,], type = "heatmap") # a slice of the brain mask for reference
 #' fig <- subplot(fig1, fig2)
 #' fig
 #'
