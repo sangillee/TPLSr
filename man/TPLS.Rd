@@ -36,18 +36,19 @@ Fit a TPLS model to data
 \examples{
 # Fit example TPLS data with a TPLS model
 # Load example data (included with package).
-X = TPLdat$X
-Y = TPLdat$Y
+X = TPLSdat$X
+Y = TPLSdat$Y
 
 # Fit the model, with default options (50 components, no observation weights)
 TPLSmdl <- TPLS(X,Y)
 
-# Make in-sample prediction at threshold of 0.5 (remove half of the voxels) and at all possible components
-pred <- predict(TPLSmdl,1:50,0.5,X)
+# Make in-sample prediction at threshold of 0.5 and at all possible components
+pred <- TPLSpredict(TPLSmdl,1:50,0.5,X)
 
 # Look at the correlation between prediction and Y.
-# Of course, since this is an in-sample prediction, the model with all 50 components have the highest predictive correlation.
-# In practice, you'd want to choose the number of components and threshold using cross-validation. See example for TPLS_cv
+# This is in-sample prediction. Ergo, the model with most components will have the highest
+# predictive correlation. In practice, you should choose the number of components and
+# threshold using cross-validation. See example for TPLS_cv
 cor(Y,pred)
 
 # Extract the predictor for a model with 25 PLS components and threshold at 0.7 (just cuz)

@@ -33,7 +33,7 @@
 #' # plot the tuning parameter surface.
 #' # It'll show the point of best performance (and also point of 1SE performance).
 #' # The plot is interactive, so spin it around
-#' plot(cvstats)
+#' plotTuningSurface(cvstats)
 #'
 #' # These are the tuning parameters of best performance
 #' cvstats$compval_best # 8 components
@@ -61,9 +61,9 @@
 #' fig
 #'
 #' # Figures show a coronal section of the brain (but flipped right 90 degrees).
-#' # on the left, you should see the bilateral motor cortex that has opposing coefficients (positive and negative) for pressing left and right buttons.
-#' # Of course, you'd want to use other packages to output this prediction map into a more bona-fid nifti image to view in a separate program.
-#' # This is just a demonstration.
+#' # on the left, you should see the bilateral motor cortex coefficients with opposing signs.
+#' # This is just a simple visual demonstration. You should use other packages to output
+#' # coefficients into a nifti file and view them in a separate viewer.
 #' @export
 
 TPLS_cv <- function(X,Y,foldid,NComp=50,W=0){

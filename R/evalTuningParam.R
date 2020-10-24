@@ -23,6 +23,7 @@
 #' }
 #' @examples
 #' # see examples under TPLS_cv as you'd need a TPLS_cv object to run this function
+#' @import plotly
 #' @export
 
 evalTuningParam <- function(TPLScvmdl,type=c("pearson","spearman","AUC"),X,Y,compvec,threshvec,subfold=NULL){
@@ -38,7 +39,7 @@ evalTuningParam <- function(TPLScvmdl,type=c("pearson","spearman","AUC"),X,Y,com
     testsubfold = subfold[testCVfold]
     uniqtestsubfold = unique(testsubfold)
     for (j in 1:length(threshvec)){
-      predmat = predict(TPLScvmdl$cvMdls[[i]],compvec,threshvec[j],X[testCVfold,])
+      predmat = TPLSpredict(TPLScvmdl$cvMdls[[i]],compvec,threshvec[j],X[testCVfold,])
       smallperfmat = matrix(nrow=length(compvec),ncol=length(uniqtestsubfold))
       for (k in 1:length(uniqtestsubfold)){
         subfoldsel = testsubfold == uniqtestsubfold[k]
@@ -69,7 +70,7 @@ evalTuningParam <- function(TPLScvmdl,type=c("pearson","spearman","AUC"),X,Y,com
 #' # See examples for TPLS_cv
 #' @export
 
-plot.evalTuningParam <- function(object){
+plotTuningSurface <- function(object){
   meansurf = apply(object$perfmat,c(1,2),mean)
   fig <- mygrid(object$threshval,object$compval,meansurf)
   axy <- list(title = "Number of PLS components"); axx <- list(title = "Proportion of Voxels Left"); axz <- list(title = object$type)
@@ -83,7 +84,7 @@ findBestPerf <- function(perfmat){
   avgperfmat = apply(perfmat,c(1,2),mean); perf_best = max(avgperfmat,na.rm = TRUE)
   bestind = which(avgperfmat==perf_best,TRUE)
   row_best = bestind[1,1]; col_best = bestind[1,2]
-  standardError = sd(perfmat[row_best,col_best,])/dim(perfmat)[3] # finding the standard error of the best point
+  standardError = stats::sd(perfmat[row_best,col_best,])/dim(perfmat)[3] # finding the standard error of the best point
   candidates = avgperfmat[,1:col_best]>(perf_best-standardError) # finding points whose metric is higher than perf_max minus 1 SE
   ind1se = which(candidates,TRUE)
   row_1se = ind1se[1,1]; col_1se=ind1se[1,2]; perf_1se = avgperfmat[row_1se,col_1se]
@@ -98,7 +99,7 @@ util_perfmetric <- function(predmat,testY,type){
       return( (  colSums(ranks[testY==1,]) - num_pos*(num_pos+1)/2 ) / (num_pos*num_neg) )
     }
   }else{
-    suppressWarnings({result = cor(predmat, testY, method = type)})
+    suppressWarnings({result = stats::cor(predmat, testY, method = type)})
     result[is.na(result)] = 0 # this probably happened because your prediction (or your Y) has no variation.
     return(result)
   }

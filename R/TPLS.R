@@ -26,7 +26,7 @@
 #' TPLSmdl <- TPLS(X,Y)
 #'
 #' # Make in-sample prediction at threshold of 0.5 and at all possible components
-#' pred <- predict(TPLSmdl,1:50,0.5,X)
+#' pred <- TPLSpredict(TPLSmdl,1:50,0.5,X)
 #'
 #' # Look at the correlation between prediction and Y.
 #' # This is in-sample prediction. Ergo, the model with most components will have the highest
@@ -98,11 +98,6 @@ TPLS <- function(X,Y,NComp=50,W=0,nmc=0){
   TPLSmdl
 }
 
-# dummy generic
-makePredictor <- function(object,compval,threshval){
-  UseMethod("makePredictor")
-}
-
 #' Extracts a predictor (betamap and intercept) from a TPLS model at a given number of components and given threshold value
 #'
 #' @param TPLSmdl A TPLS object created from using function \code{TPLS}
@@ -117,7 +112,7 @@ makePredictor <- function(object,compval,threshval){
 #' # See examples for TPLS
 #' @export
 
-makePredictor.TPLS <- function(TPLSmdl,compval,threshval){
+makePredictor <- function(TPLSmdl,compval,threshval){
   if(length(threshval)>1){stop("only one threshold value should be used")}
   betamap = TPLSmdl$betamap[,compval]
   if(threshval<1){
@@ -142,7 +137,7 @@ makePredictor.TPLS <- function(TPLSmdl,compval,threshval){
 #' # See examples for TPLS
 #' @export
 
-predict.TPLS <- function(TPLSmdl,compval,threshval,testX){
+TPLSpredict <- function(TPLSmdl,compval,threshval,testX){
   if(length(threshval)>1){stop("only one threshold value should be used")}
   if(threshval == 0){
     score = matrix(TPLSmdl$MtrainY,nrow=nrow(testX),ncol=length(compval))
