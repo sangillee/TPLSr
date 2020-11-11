@@ -1,3 +1,8 @@
+# TPLSr 1.0.2
+
+Fixes:
+1) Changed the required R version to 3.5 or higher (from 4.0).
+
 # TPLSr 1.0.1
 
 Fixes from CRAN:

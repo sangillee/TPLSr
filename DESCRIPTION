@@ -5,7 +5,7 @@ Version: 1.0.1
 Authors@R: person("Sangil", "Lee", email = "sangillee3rd@gmail.com", role = c("aut", "cre"))
 Description: Uses thresholded partial least squares algorithm to create a regression or classification model. 
 License: GPL-3
-Depends: R (>= 4.0), plotly (>= 4.9.2.1)
+Depends: R (>= 3.5), plotly (>= 4.9.2.1)
 Encoding: UTF-8
 LazyData: true
 NeedsCompilation: no
