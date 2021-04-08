@@ -1,3 +1,10 @@
+# TPLSr 1.0.3
+
+Fixes:
+1) Request from CRAN to use lazydatacompression xz on description field.
+2) Added biorxiv preprint info to readme and description.
+
+
 # TPLSr 1.0.2
 
 Fixes:
