@@ -1,0 +1,69 @@
+---
+title: "TPLS_example2"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{TPLS_example2}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Hello, from Arthur
+
+This script shows how one can use T-PLS to assess cross-validation performance.
+To see how to use T-PLS to build a predictor, see TPLS_example1.
+
+
+
+## Loading library and tutorial data
+
+```{r setup}
+library(TPLSr)
+attach(TPLSdat)
+```
+
+X is the single trial betas. It has 3714 columns, each of which corresponds to a voxel.
+Y is binary variable to be predicted. In this case, the Y was whether the participant chose left or right button. Hopefully, when we create whole-brain predictor, we should be able to see left and right motor areas.
+subj is a numerical variable that tells us the subject number that each observation belongs to.
+In this dataset, there are only 3 subjects.
+run is a numerical variable that tells us the scanner run that each observation belongs to.
+In this dataset, each of the 3 subjects had 8 scan runs.
+
+## Cross Validation
+
+There are only 3 subjects in this dataset, so we will do 3-fold CV.
+This entails repeating the following step 3 times
+* 1. Divide the data into training and testing. In this case, 2 subjects in training and 1 subject in testing.
+* 2. Using just the training data (i.e., 2 subjects), do secondary cross-validation to choose best tuning parameter
+* 3. Based on the best tuning parameter, fit a whole-brain predictor using all training data (2 subjects).
+* 4. Assess how well the left out subject is predicted
+* 5. Repeat 1~4 
+
+```{r}
+ACCstorage <- rep(NA, 3)
+for (i in 1:3) { # primary cross-validation fold
+  test = subj==i; train = !test
+  
+  # perform nested cross-validation within training data
+  cvmdl = TPLS_cv(X[train,],Y[train],subj[train])
+  cvstats = evalTuningParam(cvmdl,"Pearson",X[train,],Y[train],1:25,seq(0,1,0.05),run[train])
+  
+  # fit T-PLS model using all training data based on best tuning parameter
+  mdl = TPLS(X[train,],Y[train])
+  
+  # predict the testing subject
+  score = TPLSpredict(mdl,cvstats$compval_best,cvstats$threshval_best,X[test,])
+  prediction = 1*(score > 0.5)
+  
+  # assess performance of prediction
+  ACCstorage[i] = mean(prediction==Y[test])
+}
+
+mean(ACCstorage) # out-of-sample CV performance
+```

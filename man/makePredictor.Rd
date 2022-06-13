@@ -2,14 +2,14 @@
 % Please edit documentation in R/TPLS.R
 \name{makePredictor}
 \alias{makePredictor}
-\title{Extracts a predictor (betamap and intercept) from a TPLS model at a given number of components and given threshold value}
+\title{Method for extracting the T-PLS predictor at a given compval and threshval}
 \usage{
 makePredictor(TPLSmdl, compval, threshval)
 }
 \arguments{
 \item{TPLSmdl}{A TPLS object created from using function \code{TPLS}}
 
-\item{compval}{The number of components you want in your model. Providing a vector will provide multiple betamaps (e.g., c(3,4,5) will provide three betamaps each with 3, 4, and 5 PLS components)}
+\item{compval}{Vector of number of components to use in final predictor. Providing a vector will provide multiple betamaps (e.g., c(3,4,5) will provide three betamaps each with 3, 4, and 5 PLS components)}
 
 \item{threshval}{Threshold number between 0 and 1 (inclusive) for thresholding the betamap. This must be a scalar.}
 }
@@ -20,8 +20,5 @@ makePredictor(TPLSmdl, compval, threshval)
 }
 }
 \description{
-Extracts a predictor (betamap and intercept) from a TPLS model at a given number of components and given threshold value
-}
-\examples{
-# See examples for TPLS
+Method for extracting the T-PLS predictor at a given compval and threshval
 }

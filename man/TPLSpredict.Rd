@@ -2,14 +2,14 @@
 % Please edit documentation in R/TPLS.R
 \name{TPLSpredict}
 \alias{TPLSpredict}
-\title{Make predictions about given data \code{testX} by using an extracted TPLSmdl with \code{compval} components and \code{threshval} threshold.}
+\title{Method for making predictions on a testing dataset testX}
 \usage{
 TPLSpredict(TPLSmdl, compval, threshval, testX)
 }
 \arguments{
 \item{TPLSmdl}{A TPLS object created from using function \code{TPLS}}
 
-\item{compval}{The number of components you want in your model. Providing a vector will provide multiple predictions (e.g., c(3,4,5) will provide three prediction columns each with 3, 4, and 5 PLS components)}
+\item{compval}{Vector of number of components to use in final predictor. Providing a vector will provide multiple predictions (e.g., c(3,4,5) will provide three prediction columns each with 3, 4, and 5 PLS components)}
 
 \item{threshval}{Threshold number between 0 and 1 (inclusive) for thresholding the betamap. This must be a scalar.}
 
@@ -21,8 +21,5 @@ TPLSpredict(TPLSmdl, compval, threshval, testX)
 }
 }
 \description{
-Make predictions about given data \code{testX} by using an extracted TPLSmdl with \code{compval} components and \code{threshval} threshold.
-}
-\examples{
-# See examples for TPLS
+Method for making predictions on a testing dataset testX
 }

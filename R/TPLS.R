@@ -1,10 +1,11 @@
-#' Fit a TPLS model to data
+#' Constructor method for fitting a T-PLS model with given data X and Y.
 #'
-#' @param X n-by-v data matrix of real numbers. Rows correspond to observations (trials) and columns to variables (e.g., fMRI voxels).
-#' @param Y n-by-1 Vector of real numbers. Can be binary (0/1) for classification model, or can be continuous.
-#' @param NComp Maximum number of partial least squares component you want to use. Default is 50, and this is on the safe side for fMRI.
-#' @param W n-by-1 vector of positive observation weights.
-#' @param nmc A switch to skip mean-centering. Default is off (0). Only turn it on (1) when the data is already mean-centered and you want to save memory space by not creating another copy of the data for mean-centering.
+#' @param X Numerical matrix of predictors. Typically single-trial betas where each column is a voxel and row is observation
+#' @param Y Variable to predict. Binary 0 and 1 in case of classification, continuous variable in case of regression
+#' @param NComp (Optional) Number of PLS components to compute. Default is 25.
+#' @param W (Optional) Observation weights. By default, all observations have equal weight.
+#' @param nmc (Optional) 'no mean centering'. Default is 0. If 1, T-PLS will skip mean-centering. This option is only provided in case you already mean-centered the data and want to save some memory usage.
+#'
 #' @return A TPLS object that contains the following attributes. Most of the time, you won't need to access the attributes.
 #' \itemize{
 #'     \item \code{NComp}: The number of components you specified in the input
@@ -16,134 +17,113 @@
 #'     \item \code{betamap}: v-by-NComp matrix of TPLS coefficients for each of the v variables, provided at each model with NComp components.
 #'     \item \code{threshmap} : v-by-NComp matrix of TPLS threshold values (0~1) for each of the v variables, provided at each model with NComp components.
 #' }
-#' @examples
-#' # Fit example TPLS data with a TPLS model
-#' # Load example data (included with package).
-#' X = TPLSdat$X
-#' Y = TPLSdat$Y
-#'
-#' # Fit the model, with default options (50 components, no observation weights)
-#' TPLSmdl <- TPLS(X,Y)
-#'
-#' # Make in-sample prediction at threshold of 0.5 and at all possible components
-#' pred <- TPLSpredict(TPLSmdl,1:50,0.5,X)
-#'
-#' # Look at the correlation between prediction and Y.
-#' # This is in-sample prediction. Ergo, the model with most components will have the highest
-#' # predictive correlation. In practice, you should choose the number of components and
-#' # threshold using cross-validation. See example for TPLS_cv
-#' cor(Y,pred)
-#'
-#' # Extract the predictor for a model with 25 PLS components and threshold at 0.7 (just cuz)
-#' betamap <- makePredictor(TPLSmdl,25,0.5)
-#'
-#' # This is the intercept
-#' betamap$bias
-#'
-#' # These are the coefficients for the original variables
-#' betamap$betamap
+#' See vignettes for tutorial
 #' @export
 
-TPLS <- function(X,Y,NComp=50,W=0,nmc=0){
-  if(any(W < 0)){stop("Observation weights should be non-negative")}
-  if(length(W) == 1){W <- matrix(1, nrow=length(Y), ncol=1)} # if weight is not provided, every observation has equal weight
+TPLS <- function(X,Y,NComp=25,W=NULL,nmc=0){
+  # input checking
+  X = as.matrix(X); TPLSinputchecker(X,"X","mat",NULL,NULL,1); n = nrow(X); v = ncol(X)
+  Y = as.matrix(Y); TPLSinputchecker(Y,"Y","colvec",NULL,NULL,1)
+  TPLSinputchecker(NComp,"NComp","scalar",NULL,1,0,1)
+  if(is.null(W)){W <- matrix(1, nrow=length(Y), ncol=1)} # if weight is not provided, every observation has equal weight
+  else{W= as.matrix(W);TPLSinputchecker(W,"W","colvec",NULL,0)};
+  TPLSinputchecker(nmc,"nmc","scalar")
+  if(nrow(Y)!=n || nrow(W)!=n){stop("X, Y, and W should have equal number of rows")}
   W = W/sum(W) # normalize weight sum to 1
-  n = nrow(X); v = ncol(X)
-
-  # would like to potentially include support for single precision computing, but not sure how to yet...
 
   # Mean-Center variables as needed by SIMPLS algorithm
-  MtrainX = t(W)%*%X; MtrainY = c(t(W)%*%Y) # Weighted means of X and Y
-  if(nmc==0){X = X-rep(MtrainX,rep.int(n,v)); Y = Y-MtrainY # if no switch is given to skip mean centering
+  MtrainX = t(W)%*%X; MtrainY = c(t(W)%*%Y) # calculating weighted means of X and Y
+  if(nmc==0){ # do mean centering
+    X = X-rep(MtrainX,rep.int(n,v)); Y = Y-MtrainY # subtract means
   }else{
-    message('mean centering disabled')
-    if(mean(abs(MtrainX)) > 1e-04){warning("X does not seem to be mean-centered. Results may not be valid")}
+    if(any(abs(MtrainX) > 1e-04)){warning("Skipped mean centering, but X does not seem to be mean-centered. Results may be invalid")}
   }
 
-  # allocate memories for output variables, interim variables, and calculate often used variables
-  scoreCorr = matrix(nrow=NComp,ncol=1); betamap = matrix(nrow=v,ncol=NComp); threshmap = cbind(matrix(0.5,nrow=v,ncol=1),matrix(nrow=v,ncol=NComp-1))
-  B = matrix(nrow=NComp,ncol=1); P2 = matrix(nrow=n,ncol=NComp); C = matrix(nrow=v,ncol=NComp); sumC2 = matrix(0,nrow=v,ncol=1); r = Y; V = matrix(nrow=v,ncol=NComp)
-  WT = t(W); WYT = t(W*Y); WTY2 = c(WT%*%(Y^2)); W2 = W^2 # often-used variables
+  # allocate memories
+  pctVar = matrix(nrow=NComp,ncol=1); scoreCorr = matrix(nrow=NComp,ncol=1) # percent of variance of Y each component explains, weighted correlation between Y and current component
+  betamap = matrix(nrow=v,ncol=NComp); threshmap = matrix(0.5,nrow=v,ncol=NComp); zmap = matrix(nrow=v,ncol=NComp) # output variables
+  B = matrix(nrow=NComp,ncol=1); P2 = matrix(nrow=n,ncol=NComp); C = matrix(nrow=v,ncol=NComp); sumC2 = matrix(0,nrow=v,ncol=1); r = Y; V = matrix(nrow=v,ncol=NComp) #interim variables
+  WT = t(W); WTY2 = c(WT%*%(Y^2)); W2 = W^2 # often-used variables in calculation
 
   # perform Arthur-modified SIMPLS algorithm
-  Cov = t(WYT%*%X) # weighted covariance
+  Cov = t(t(W*Y)%*%X); normCov = norm(Cov,type="2") # weighted covariance
   for (i in 1:NComp){
     message(paste("Calculating Comp #",i))
-    P = X%*%Cov # this is the component, before normalization
-    norm_P = c(sqrt(WT%*%(P^2))) # weighted standard deviation of component as normalization constant
-    P = P / norm_P; B[i] = (norm(Cov,type="2")^2)/norm_P; C[,i] = Cov / norm_P # normalize component, beta, and back-projection coefficient
+    P = X%*%Cov; norm_P = c(sqrt(WT%*%(P^2)))# this is the component and its weighted stdev
+    P = P / norm_P; B[i] = (normCov^2)/norm_P; C[,i] = Cov / norm_P # normalize component, beta, and back-projection coefficient
+    pctVar[i] = (B[i]^2)/WTY2; scoreCorr[i] = sqrt(pctVar[i]);
 
     # Update the orthonormal basis with modified Gram Schmidt
     vi = t(t(W*P)%*%X) #weighted covariance between X and current component
     vi = vi - V[,1:i-1]%*%(t(V[,1:i-1])%*%vi) # orthogonalize with regards to previous components
     vi = vi / norm(vi,type="2"); V[,i] = vi; # normalize and add to orthonormal basis matrix
-    Cov = Cov - vi%*%(t(vi)%*%Cov); Cov = Cov - V[,1:i]%*%(t(V[,1:i])%*%Cov) # Deflate Covariance using the orthonormal basis matrix
+    Cov = Cov - vi%*%(t(vi)%*%Cov); Cov = Cov - V[,1:i]%*%(t(V[,1:i])%*%Cov); normCov = norm(Cov,type="2") # Deflate Covariance using the orthonormal basis matrix
 
     # back-projection
     sumC2 = sumC2 + C[,i]^2; P2[,i] = P^2; r = r - P*B[i] # some variables that will facilitate computation later
     if(i>1){ # not the first component
       betamap[,i] = C[,1:i]%*%B[1:i] # back-projection of coefficients
       se = sqrt( t(P2[,1:i])%*%(W2*(r^2))  ) # Huber-White Sandwich estimator (assume no small T bias)
-      absz = abs( (C[,1:i]%*%(B[1:i]/se)) / sqrt(sumC2) ) # absolute value of back-projected z-statistics
-      threshmap[,i] = (v- rank(absz) )/v # convert into thresholds between 0 and 1
+      zmap[,i] = (C[,1:i]%*%(B[1:i]/se)) / sqrt(sumC2) # back-projected z-statistics
+      threshmap[,i] = (v- rank( abs(zmap[,i]) ) )/v # convert into thresholds between 0 and 1
     }else{betamap[,i] = C[,1:i]*B[1:i]} # back-projection of coefficients
+
+    # check if there's enough covariance to milk
+    if(normCov < 10*.Machine$double.eps){
+      message("All Covariance between X and Y has been explained. Stopping..."); break
+    }else{
+      if(pctVar[i] < 10*.Machine$double.eps){ # Proportion of Y variance explained is small
+        message("New PLS component does not explain more covariance. Stopping..."); break
+      }
+    }
   }
 
-  pctVar = (B^2) / WTY2 # Compute the percent of variance of Y each component explains
-  scoreCorr = sqrt(pctVar) # weighted correlation between Y and current component
 
-
-  TPLSmdl <- list("NComp" = NComp, "W" = W, "MtrainX" = MtrainX, "MtrainY" = MtrainY, "scoreCorr"= scoreCorr, "pctVar"=pctVar, "betamap" = betamap, "threshmap"= threshmap)
+  TPLSmdl <- list("NComp" = NComp, "W" = W, "MtrainX" = MtrainX, "MtrainY" = MtrainY, "scoreCorr"= scoreCorr, "pctVar"=pctVar, "betamap" = betamap, "threshmap"= threshmap, "zmap"=zmap)
   class(TPLSmdl) <- "TPLS"
   TPLSmdl
 }
 
-#' Extracts a predictor (betamap and intercept) from a TPLS model at a given number of components and given threshold value
+#' Method for extracting the T-PLS predictor at a given compval and threshval
 #'
 #' @param TPLSmdl A TPLS object created from using function \code{TPLS}
-#' @param compval The number of components you want in your model. Providing a vector will provide multiple betamaps (e.g., c(3,4,5) will provide three betamaps each with 3, 4, and 5 PLS components)
+#' @param compval Vector of number of components to use in final predictor. Providing a vector will provide multiple betamaps (e.g., c(3,4,5) will provide three betamaps each with 3, 4, and 5 PLS components)
 #' @param threshval Threshold number between 0 and 1 (inclusive) for thresholding the betamap. This must be a scalar.
 #' @return
 #' \itemize{
 #'     \item \code{bias}: The intercept of the extracted model. Vector of intercepts if compval is a vector.
 #'     \item \code{betamap}: Column vector of betamap. Matrix of betamaps if compval is a vector.
 #' }
-#' @examples
-#' # See examples for TPLS
 #' @export
 
 makePredictor <- function(TPLSmdl,compval,threshval){
-  if(length(threshval)>1){stop("only one threshold value should be used")}
-  betamap = TPLSmdl$betamap[,compval]
-  if(threshval<1){
-    betamap = betamap*(TPLSmdl$threshmap[,compval]<=threshval)
+  TPLSinputchecker(compval,"compval","vec",TPLSmdl$NComp,1,0,1)
+  TPLSinputchecker(threshval,"threshval","scalar",1,0)
+  if(threshval==0){
+    betamap = TPLSmdl$betamap[,compval] * 0
+  }else{
+    betamap = TPLSmdl$betamap[,compval] * (TPLSmdl$threshmap[,compval]<=threshval)
   }
   bias = TPLSmdl$MtrainY - TPLSmdl$MtrainX %*% betamap # post-fitting of bias
   return(list("bias" = bias, "betamap" = betamap))
 }
 
 
-#' Make predictions about given data \code{testX} by using an extracted TPLSmdl with \code{compval} components and \code{threshval} threshold.
+#' Method for making predictions on a testing dataset testX
 #'
 #' @param TPLSmdl A TPLS object created from using function \code{TPLS}
-#' @param compval The number of components you want in your model. Providing a vector will provide multiple predictions (e.g., c(3,4,5) will provide three prediction columns each with 3, 4, and 5 PLS components)
+#' @param compval Vector of number of components to use in final predictor. Providing a vector will provide multiple predictions (e.g., c(3,4,5) will provide three prediction columns each with 3, 4, and 5 PLS components)
 #' @param threshval Threshold number between 0 and 1 (inclusive) for thresholding the betamap. This must be a scalar.
 #' @param testX Data that you want to predict the Y of
 #' @return
 #' \itemize{
 #'     \item \code{score}: Column vector of prediction scores. Matrix of scores if compval is a vector.
 #' }
-#' @examples
-#' # See examples for TPLS
 #' @export
 
 TPLSpredict <- function(TPLSmdl,compval,threshval,testX){
-  if(length(threshval)>1){stop("only one threshold value should be used")}
-  if(threshval == 0){
-    score = matrix(TPLSmdl$MtrainY,nrow=nrow(testX),ncol=length(compval))
-  }else{
-    preds = makePredictor(TPLSmdl,compval,threshval)
-    score = matrix(preds$bias,nrow=nrow(testX),ncol=length(compval)) + testX%*%preds$betamap
-  }
+  TPLSinputchecker(testX,"testX")
+  preds = makePredictor(TPLSmdl,compval,threshval)
+  score = do.call(rbind,replicate(nrow(testX),preds$bias,simplify=FALSE)) + testX%*%preds$betamap
   return(score)
 }

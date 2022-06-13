@@ -1,3 +1,12 @@
+# TPLSr 1.0.4
+
+Update to match the publication of the manuscript (See Lee, Bradlow, & Kable, 2022, Cell Reports Methods).
+Updates:
+1) support for generalized cross-validation schemes
+2) support for additional cost functions in cross-validation
+3) inclusion of two vignettes to serve as tutorials
+Fixes: Minor bug fixes
+
 # TPLSr 1.0.3
 
 Fixes:

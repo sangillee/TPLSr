@@ -1,0 +1,157 @@
+---
+title: "TPLS_example1"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{TPLS_example1}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Hello, from Arthur
+
+This script shows how one can use T-PLS to build a whole-brain decoder.
+To see how to use T-PLS to assess CV performance, check TPLS_example2.
+
+
+## Loading library and tutorial data
+
+```{r setup}
+library(TPLSr)
+attach(TPLSdat)
+```
+This should load X, Y, run, subj, mask. Mask is the 3d brain image mask.
+See how many voxels there are inside the mask:
+```{r}
+sum(mask)
+```
+
+X is the single trial betas. It has 3714 columns, each of which corresponds to a voxel.
+Y is binary variable to be predicted. In this case, the Y was whether the participant chose left or right button. Hopefully, when we create whole-brain predictor, we should be able to see left and right motor areas.
+subj is a numerical variable that tells us the subject number that each observation belongs to.
+In this dataset, there are only 3 subjects.
+run is a numerical variable that tells us the scanner run that each observation belongs to.
+In this dataset, each of the 3 subjects had 8 scan runs.
+
+
+## Cross-Validation
+
+Let's first do leave-one-subject out cross-validation to find the best tuning parameters.
+We will give X and Y as variables and subj to be used as cross-validation folds.
+The rest of the inputs are omitted to default.
+
+```{r}
+cvmdl = TPLS_cv(X,Y,subj)
+```
+
+That should have been pretty quick.
+Now we need to evaluate prediction performance across the three folds
+We will use AUC of ROC as the prediction performance metric
+By default we trained TPLS model with 25 components so we will try out 1 to 25 components in cross validation
+```{r}
+compvec = 1:25
+```
+For thresholding, let's try 0 to 1 in 0.05 increments
+```{r}
+threshvec = seq(0,1,by=0.05)
+```
+subfold is not always necessary but you can use it if you want your performance in each fold to be calculated by an average of subfolds rather than in whole. For example, in this case, instead of estimating the AUC across all 8 runs of each subject, we can estimate the AUC within each of the 8 runs and then average them to obtain subject-level performance metric. You may want to do this because there are often spurious baseline shifts in estimated activity across runs that can make their alignment poor.
+```{r}
+subfold = run;
+```
+now let's evaluate
+```{r}
+cvstats = evalTuningParam(cvmdl,'AUC',X,Y,compvec,threshvec,subfold);
+```
+
+We can now plot to look at the cross-validation performance as a function of number of components (1:25) and threshold (0:.05:1). When you do this yourself the 3d plot is interactive so feel free to move it around.
+```
+plotTuningSurface(cvstats)
+```
+
+So if you're seeing what I'm seeing, the best performance, as indicated by blue dot (Max Perf) should be at threshold 0.1 (10% of voxels left) and at 8 components. This information is also available in the cvstats structure.
+```{r}
+cvstats$compval_best
+cvstats$threshval_best
+```
+
+## Final Model
+
+Now that we know the best tuning parameter, let's fit the final model using this tuning parameter.
+You can specify it to fit up to 8 components since that's only what we need.
+```{r}
+mdl = TPLS(X,Y,8);
+```
+
+See how much covariance between X and Y each PLS component explains, and also see the correlation between each PLS component and Y
+```{r}
+plot(mdl$pctVar); plot(mdl$scoreCorr)
+```
+
+Now let's extract the whole-brain map.
+```{r}
+compval = cvstats$compval_best;
+threshval = cvstats$threshval_best;
+result = makePredictor(mdl,compval,threshval);
+```
+
+voila! you now have a whole-brain predictor. You can check how many voxels have non-zero coefficients by doing this.
+```{r}
+sum(result$betamap!=0)
+```
+To me, it shows 372, which is about 1/10th of all the voxels (since that was our thresholding tuning parameter)
+
+You can easily use this betamap to predict trials by just multiplying this betamap to each single-trial beta images.
+
+
+For example:
+```{r}
+prediction = X %*% result$betamap;
+stats::cor(prediction,Y) # 0.63 correlation! In-sample though so not that impressive
+plot(prediction,Y)
+```
+
+You can also use the built-in function for prediction as well
+```{r}
+prediction = TPLSpredict(mdl,compval,threshval,X)
+```
+
+If you use the built-in prediction function, it will also add the bias(intercept) to your prediction.
+This may or may not be useful to you since fMRI data is unitless. But, if you're trying to access accuracy, you would want to incorporate the bias so that you can interpret the prediction as a probability
+
+Now let's look at the resulting whole-brain predictor
+```{r}
+mymap = mask
+mymap[mask==1] = result$betamap
+```
+
+If you have a nifti toolbox, you can save this out into a nifti file and look at it.
+For now, let's look at the slice where there should be motor activity
+
+```{r}
+heatmap(1*mask[,15,], Colv = NA, Rowv = NA,scale ="none")
+heatmap(mymap[,15,], Colv = NA, Rowv = NA,scale ="none")
+```
+
+It isn't much, but you're looking at a coronal slice of the brain right about where the motor cortex is (rotated 90 deg to right).
+You can see the left motor cortex has positive coefficients while the right cortex has negative coefficients.
+That's because our Y variable was whether participant chose the right button (hence left motor cortex)
+
+
+
+##  short version 
+
+This is the short version of all that we did above, in case you want a version of example that you can easily copy paste to your pipeline.
+Here it is. 4 lines!
+```
+cvmdl = TPLS_cv(X,Y,subj);
+cvstats = evalTuningParam(cvmdl,'AUC',X,Y,1:25,seq(0,1,by=0.05),run);
+mdl = TPLS(X,Y);
+result = makePredictor(mdl,cvstats$compval_best,cvstats$threshval_best);
+```

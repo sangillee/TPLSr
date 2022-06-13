@@ -12,6 +12,3 @@ plotTuningSurface(object)
 \description{
 Plots the tuning surface of TPLS
 }
-\examples{
-# See examples for TPLS_cv
-}

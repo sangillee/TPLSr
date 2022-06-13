@@ -2,20 +2,20 @@
 % Please edit documentation in R/TPLS.R
 \name{TPLS}
 \alias{TPLS}
-\title{Fit a TPLS model to data}
+\title{Constructor method for fitting a T-PLS model with given data X and Y.}
 \usage{
-TPLS(X, Y, NComp = 50, W = 0, nmc = 0)
+TPLS(X, Y, NComp = 25, W = NULL, nmc = 0)
 }
 \arguments{
-\item{X}{n-by-v data matrix of real numbers. Rows correspond to observations (trials) and columns to variables (e.g., fMRI voxels).}
+\item{X}{Numerical matrix of predictors. Typically single-trial betas where each column is a voxel and row is observation}
 
-\item{Y}{n-by-1 Vector of real numbers. Can be binary (0/1) for classification model, or can be continuous.}
+\item{Y}{Variable to predict. Binary 0 and 1 in case of classification, continuous variable in case of regression}
 
-\item{NComp}{Maximum number of partial least squares component you want to use. Default is 50, and this is on the safe side for fMRI.}
+\item{NComp}{(Optional) Number of PLS components to compute. Default is 25.}
 
-\item{W}{n-by-1 vector of positive observation weights.}
+\item{W}{(Optional) Observation weights. By default, all observations have equal weight.}
 
-\item{nmc}{A switch to skip mean-centering. Default is off (0). Only turn it on (1) when the data is already mean-centered and you want to save memory space by not creating another copy of the data for mean-centering.}
+\item{nmc}{(Optional) 'no mean centering'. Default is 0. If 1, T-PLS will skip mean-centering. This option is only provided in case you already mean-centered the data and want to save some memory usage.}
 }
 \value{
 A TPLS object that contains the following attributes. Most of the time, you won't need to access the attributes.
@@ -29,34 +29,8 @@ A TPLS object that contains the following attributes. Most of the time, you won'
     \item \code{betamap}: v-by-NComp matrix of TPLS coefficients for each of the v variables, provided at each model with NComp components.
     \item \code{threshmap} : v-by-NComp matrix of TPLS threshold values (0~1) for each of the v variables, provided at each model with NComp components.
 }
+See vignettes for tutorial
 }
 \description{
-Fit a TPLS model to data
-}
-\examples{
-# Fit example TPLS data with a TPLS model
-# Load example data (included with package).
-X = TPLSdat$X
-Y = TPLSdat$Y
-
-# Fit the model, with default options (50 components, no observation weights)
-TPLSmdl <- TPLS(X,Y)
-
-# Make in-sample prediction at threshold of 0.5 and at all possible components
-pred <- TPLSpredict(TPLSmdl,1:50,0.5,X)
-
-# Look at the correlation between prediction and Y.
-# This is in-sample prediction. Ergo, the model with most components will have the highest
-# predictive correlation. In practice, you should choose the number of components and
-# threshold using cross-validation. See example for TPLS_cv
-cor(Y,pred)
-
-# Extract the predictor for a model with 25 PLS components and threshold at 0.7 (just cuz)
-betamap <- makePredictor(TPLSmdl,25,0.5)
-
-# This is the intercept
-betamap$bias
-
-# These are the coefficients for the original variables
-betamap$betamap
+Constructor method for fitting a T-PLS model with given data X and Y.
 }

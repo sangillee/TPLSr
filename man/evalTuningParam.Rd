@@ -2,11 +2,11 @@
 % Please edit documentation in R/evalTuningParam.R
 \name{evalTuningParam}
 \alias{evalTuningParam}
-\title{Evaluate TPLS tuning parameters using cross validation}
+\title{Evaluating cross-validation performance of a TPLS_cv model at compvec and threshvec}
 \usage{
 evalTuningParam(
   TPLScvmdl,
-  type = c("pearson", "spearman", "AUC"),
+  type = c("Pearson", "negMSE", "ACC", "AUC", "LLbinary", "Spearman"),
   X,
   Y,
   compvec,
@@ -17,18 +17,17 @@ evalTuningParam(
 \arguments{
 \item{TPLScvmdl}{TPLS_cv model created from \code{TPLS_cv}}
 
-\item{type}{Cross validation performance measure type. One of 'pearson', 'spearman', or 'AUC'}
+\item{type}{CV performance metric type. One of LLbinary, negMSE, Pearson, Spearman, AUC, ACC.}
 
-\item{X}{The SAME X that was used to create the \code{TPLScvmdl}. If it's not the same, the function may not work or the results will be completely off}
+\item{X}{The same X as used in \code{TPLScvmdl}.}
 
-\item{Y}{The SAME Y that was used to create the \code{TPLScvmdl}.}
+\item{Y}{The SAME Y as used in \code{TPLScvmdl}.}
 
-\item{compvec}{Vector containing the number of components you want to assess CV performance for (e.g., c(3,4,5) will provide CV performance of 3, 4, and 5 component TPLS model at various thresholds)}
+\item{compvec}{Vector of number of components to test in cross-validation.}
 
-\item{threshvec}{Vector containing the thresholding level betweeon 0 and 1 you want to assess CV performance for (e.g., seq(0,1,0.1) will provide CV performance of TPLS models at thresholds of 0, 0.1, 0.2, ... ,1)}
+\item{threshvec}{Vector of threshold level (0 ~ 1) to test in cross-validation.}
 
-\item{subfold}{Optional vector containing smaller data division within folds. For example, if the cross-validation was done at the subject level, with each testing fold being a subject,
-subfold can be the run number of the scan of each person. This allows for calculation of average CV metric at the run level instead of at the subject level.}
+\item{subfold}{(Optional) vector of subdivision within testing fold to calculate performance. For example scan run division within subject.}
 }
 \value{
 A evalTuningParam object that contains the following attributes.
@@ -43,11 +42,9 @@ A evalTuningParam object that contains the following attributes.
     \item \code{perf_1se} : Performance of the most parsimonious model (least number of coefficients) that is within 1 standard error of perf_best.
     \item \code{compval_1se} : Number of components that gave perf_1se
     \item \code{threshval_1se} : Threshold level that gave perf_1se
+    \item \code{best_at_threshold} : a 3-column matrix; first column is max performance at threshold, second column is threshold values, third column is number of components for the best model at threshold
 }
 }
 \description{
-Evaluate TPLS tuning parameters using cross validation
-}
-\examples{
-# see examples under TPLS_cv as you'd need a TPLS_cv object to run this function
+Evaluating cross-validation performance of a TPLS_cv model at compvec and threshvec
 }
