@@ -59,7 +59,7 @@ evalTuningParam <- function(TPLScvmdl,type=c("Pearson","negMSE","ACC","AUC","LLb
   bestind = which(avgperfmat==perf_best,TRUE) # coordinates of best point
   compval_best = compvec[bestind[1,1]]; threshval_best = threshvec[bestind[1,2]] # component and threshold of best point
   standardError = stats::sd(perfmat[bestind[1,1],bestind[1,2],])/sqrt(dim(perfmat)[3]) # standard error of best point
-  ind1se = which(avgperfmat[,1:bestind[1,2]]>(perf_best-standardError),TRUE) # coordinates of 1SE point
+  ind1se = which(avgperfmat[,1:bestind[1,2],drop = FALSE]>=(perf_best-standardError),TRUE) # coordinates of 1SE point
   perf_1se = avgperfmat[ind1se[1,1],ind1se[1,2]] # performance of 1SE point
   compval_1se = compvec[ind1se[1,1]]; threshval_1se = threshvec[ind1se[1,2]]
   best_at_threshold = matrix(NA,nrow=length(threshvec),ncol=3)
@@ -109,6 +109,7 @@ util_perfmetric <- function(predmat,testY,type){
            Perf = colMeans( (1*(predmat>0.5))==testY )
          },
          AUC={
+           if(binarycheck(testY)!=1){stop("AUC can be only calculated for binary measures")}
            n = length(testY); num_pos = sum(testY==1); num_neg = n - num_pos
            if (num_pos>0 && num_pos < n){
              ranks = apply(predmat,2,rank)

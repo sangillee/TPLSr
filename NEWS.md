@@ -1,3 +1,10 @@
+# TPLSr 1.0.5
+
+Update to resolve errors.
+Updates:
+1) Resolved errors that happen when 1st component is the best
+2) Added catch for using AUC when Y is non-binary
+
 # TPLSr 1.0.4
 
 Update to match the publication of the manuscript (See Lee, Bradlow, & Kable, 2022, Cell Reports Methods).
